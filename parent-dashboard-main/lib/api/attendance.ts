@@ -1,0 +1,45 @@
+import apiClient from '../api-client';
+
+export interface Attendance {
+  id: number;
+  student_id: number;
+  class_id: number;
+  date: string;
+  status: 'present' | 'absent' | 'late' | 'excused';
+  notes?: string;
+  student?: {
+    id: number;
+    student_id: string;
+    user?: {
+      name: string;
+      email: string;
+    };
+  };
+  class?: {
+    id: number;
+    name: string;
+  };
+}
+
+export interface AttendanceResponse {
+  data: Attendance[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export const attendanceApi = {
+  getAll: async (params?: {
+    student_id?: number;
+    class_id?: number;
+    date?: string;
+    date_from?: string;
+    date_to?: string;
+    per_page?: number;
+  }): Promise<AttendanceResponse> => {
+    const response = await apiClient.get('/attendance', { params });
+    return response.data;
+  },
+};
+

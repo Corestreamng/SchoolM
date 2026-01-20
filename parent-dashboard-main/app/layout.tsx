@@ -1,0 +1,34 @@
+import type React from "react";
+import type { Metadata } from "next";
+import { Montserrat } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { LanguageProvider } from "@/context/language-context";
+import "./globals.css";
+
+const montserrat = Montserrat({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "CoreSkool - Parent Dashboard",
+  description: "Monitor your child's academic progress and activities",
+  generator: "v0.app",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className={`${montserrat.className} bg-slate-50`}>
+        <QueryProvider>
+          <LanguageProvider>
+            {children}
+            <Analytics />
+          </LanguageProvider>
+        </QueryProvider>
+      </body>
+    </html>
+  );
+}
