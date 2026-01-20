@@ -233,6 +233,9 @@ class AuthController extends Controller
         }
 
         // Verify code (simplified - in production use a proper TOTP library like google2fa)
+        // TODO: For production, integrate google2fa or similar TOTP library
+        // Example: $google2fa = new Google2FA();
+        // $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
         $recoveryCodes = json_decode($user->two_factor_recovery_codes, true) ?? [];
         
         if (in_array($request->code, $recoveryCodes)) {
@@ -242,9 +245,10 @@ class AuthController extends Controller
                 'two_factor_recovery_codes' => json_encode(array_values($recoveryCodes)),
             ]);
         } else {
-            // In production, implement proper TOTP verification
+            // In production, implement proper TOTP verification here
+            // For now, this is a placeholder that only accepts recovery codes
             throw ValidationException::withMessages([
-                'code' => ['The provided code is invalid.'],
+                'code' => ['The provided code is invalid. Note: TOTP verification not yet implemented. Use recovery codes.'],
             ]);
         }
 
