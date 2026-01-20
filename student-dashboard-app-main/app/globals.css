@@ -88,3 +88,135 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile Responsiveness Improvements */
+@layer utilities {
+  /* Mobile-first responsive containers */
+  .container {
+    @apply w-full px-4 mx-auto;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      @apply px-6;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      @apply px-8;
+    }
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+
+  /* Responsive grid layouts */
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+
+  .grid-responsive-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  /* Mobile-friendly buttons */
+  .btn-mobile {
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  }
+
+  /* Mobile-friendly forms */
+  .input-mobile {
+    @apply min-h-[44px] text-base;
+  }
+
+  /* Responsive spacing */
+  .spacing-responsive {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+
+  /* Hide on mobile */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+
+  /* Show only on mobile */
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+
+  /* Mobile sidebar */
+  .sidebar-mobile {
+    @apply fixed inset-0 z-50 transform transition-transform duration-300;
+  }
+
+  /* Responsive card */
+  .card-responsive {
+    @apply rounded-lg shadow-sm p-4 sm:p-6;
+  }
+
+  /* Mobile-friendly table */
+  .table-responsive {
+    @apply w-full overflow-x-auto;
+  }
+
+  .table-responsive table {
+    @apply min-w-full;
+  }
+
+  /* Mobile navigation */
+  .nav-mobile {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4;
+  }
+
+  /* Responsive flex */
+  .flex-responsive {
+    @apply flex flex-col sm:flex-row gap-4;
+  }
+}
+
+/* Override specific components for mobile */
+@media (max-width: 640px) {
+  /* Ensure dialogs/modals are mobile-friendly */
+  [role="dialog"],
+  [role="alertdialog"] {
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100vh - 2rem) !important;
+  }
+
+  /* Make tables scrollable on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Stack form elements vertically on mobile */
+  form .flex {
+    flex-direction: column;
+  }
+
+  /* Improve touch targets */
+  button,
+  a,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
