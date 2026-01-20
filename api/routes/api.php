@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\BulkUploadController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/2fa/verify', [AuthController::class, 'verify2FA']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -33,6 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/2fa/enable', [AuthController::class, 'enable2FA']);
+    Route::post('/2fa/disable', [AuthController::class, 'disable2FA']);
 
     // Dashboard stats (admin only)
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
