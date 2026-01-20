@@ -17,10 +17,15 @@ use App\Http\Controllers\Api\ResultController;
 use App\Http\Controllers\Api\TeacherAssignmentController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\AuditController;
+use App\Http\Controllers\Api\BulkUploadController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/2fa/verify', [AuthController::class, 'verify2FA']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -29,6 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/2fa/enable', [AuthController::class, 'enable2FA']);
+    Route::post('/2fa/disable', [AuthController::class, 'disable2FA']);
 
     // Dashboard stats (admin only)
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
@@ -36,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Students
     Route::apiResource('students', StudentController::class);
     Route::get('/students/download/csv', [StudentController::class, 'downloadCsv']);
+    Route::post('/students/bulk-upload', [StudentController::class, 'bulkUpload']);
+    Route::get('/students/upload/template', [StudentController::class, 'downloadTemplate']);
 
     // Teachers
     Route::apiResource('teachers', TeacherController::class);
@@ -100,4 +109,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/teacher-assignments/{teacherId}', [TeacherAssignmentController::class, 'getAssignments']);
     Route::get('/teacher-assignments/{teacherId}/classes', [TeacherAssignmentController::class, 'getAssignedClasses']);
     Route::post('/teacher-assignments/bulk', [TeacherAssignmentController::class, 'bulkAssign']);
+
+    // Bulk Upload
+    Route::post('/bulk-upload/teachers', [BulkUploadController::class, 'uploadTeachers']);
+    Route::post('/bulk-upload/parents', [BulkUploadController::class, 'uploadParents']);
+    Route::get('/bulk-upload/templates/teacher', [BulkUploadController::class, 'teacherTemplate']);
+    Route::get('/bulk-upload/templates/parent', [BulkUploadController::class, 'parentTemplate']);
+
+    // Settings
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::put('/settings', [SettingsController::class, 'update']);
+    Route::put('/settings/evaluation-ratings', [SettingsController::class, 'updateEvaluationRatings']);
+
+    // Roles and Permissions
+    Route::apiResource('roles', RoleController::class);
+    Route::get('/permissions', [RoleController::class, 'permissions']);
+
+    // Audit Logs
+    Route::get('/audit-logs', [AuditController::class, 'index']);
+    Route::get('/audit-logs/{id}', [AuditController::class, 'show']);
 });

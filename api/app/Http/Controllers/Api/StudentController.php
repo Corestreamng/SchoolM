@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\SchoolSetting;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
@@ -80,19 +83,15 @@ class StudentController extends Controller
 
         // Auto-generate student_id if not provided
         if (empty($validated['student_id'])) {
+            $prefix = SchoolSetting::get('student_id_prefix', 'STU');
+            $lastNumber = (int) SchoolSetting::get('last_student_number', 0);
             $year = date('Y');
-            $lastStudent = Student::where('student_id', 'like', "STU{$year}%")
-                ->orderBy('student_id', 'desc')
-                ->first();
-
-            if ($lastStudent) {
-                $lastNumber = (int) substr($lastStudent->student_id, -4);
-                $newNumber = $lastNumber + 1;
-            } else {
-                $newNumber = 1;
-            }
-
-            $validated['student_id'] = 'STU' . $year . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            
+            $newNumber = $lastNumber + 1;
+            $validated['student_id'] = $prefix . $year . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            
+            // Update last student number
+            SchoolSetting::set('last_student_number', $newNumber);
         }
 
         // Generate email if not provided
@@ -114,7 +113,7 @@ class StudentController extends Controller
         $user = \App\Models\User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => \Illuminate\Support\Facades\Hash::make($password),
+            'password' => Hash::make($password),
             'role' => 'student',
             'phone' => $validated['phone'] ?? null,
         ]);
@@ -153,6 +152,9 @@ class StudentController extends Controller
                 }
             }
         }
+
+        // Log the action
+        AuditLog::logAction('student.create', $student, null, $student->toArray());
 
         return response()->json($student->load(['user', 'class', 'parent']), 201);
     }
@@ -276,6 +278,207 @@ class StudentController extends Controller
                     $student->status ?? '',
                 ]);
             }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function bulkUpload(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $file = $request->file('file');
+        $handle = fopen($file->getRealPath(), 'r');
+        
+        // Skip header row
+        fgetcsv($handle);
+
+        $created = [];
+        $errors = [];
+        $row = 1;
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $row++;
+
+            try {
+                if (count($data) < 3) {
+                    $errors[] = "Row {$row}: Insufficient data";
+                    continue;
+                }
+
+                $name = trim($data[0]);
+                $email = trim($data[1]) ?: null;
+                $phone = trim($data[2]) ?: null;
+                $dateOfBirth = trim($data[3] ?? '') ?: null;
+                $gender = trim($data[4] ?? '') ?: null;
+                $className = trim($data[5] ?? '') ?: null;
+                $parentEmail = trim($data[6] ?? '') ?: null;
+
+                if (empty($name)) {
+                    $errors[] = "Row {$row}: Name is required";
+                    continue;
+                }
+
+                // Find class by name
+                $classId = null;
+                if ($className) {
+                    $class = \App\Models\SchoolClass::where('name', $className)->first();
+                    $classId = $class ? $class->id : null;
+                }
+
+                // Find parent by email
+                $parentId = null;
+                if ($parentEmail) {
+                    $parentUser = \App\Models\User::where('email', $parentEmail)->where('role', 'parent')->first();
+                    if ($parentUser) {
+                        $parent = \App\Models\ParentModel::where('user_id', $parentUser->id)->first();
+                        $parentId = $parent ? $parent->id : null;
+                    }
+                }
+
+                // Auto-generate student_id
+                $prefix = SchoolSetting::get('student_id_prefix', 'STU');
+                $lastNumber = (int) SchoolSetting::get('last_student_number', 0);
+                $year = date('Y');
+                
+                $newNumber = $lastNumber + 1;
+                $studentId = $prefix . $year . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+                
+                // Update last student number
+                SchoolSetting::set('last_student_number', $newNumber);
+
+                // Generate email if not provided
+                if (empty($email)) {
+                    $email = strtolower(str_replace(' ', '', $name)) . '@coreskool.local';
+                    $counter = 1;
+                    $baseEmail = $email;
+                    while (\App\Models\User::where('email', $email)->exists()) {
+                        $email = str_replace('@coreskool.local', $counter . '@coreskool.local', $baseEmail);
+                        $counter++;
+                    }
+                }
+
+                // Check if email already exists
+                if (\App\Models\User::where('email', $email)->exists()) {
+                    $errors[] = "Row {$row}: Email {$email} already exists";
+                    continue;
+                }
+
+                // Generate random password
+                $password = \Illuminate\Support\Str::random(12);
+
+                // Create user
+                $user = \App\Models\User::create([
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => Hash::make($password),
+                    'role' => 'student',
+                    'phone' => $phone,
+                ]);
+
+                // Create student
+                $student = Student::create([
+                    'user_id' => $user->id,
+                    'student_id' => $studentId,
+                    'date_of_birth' => $dateOfBirth,
+                    'gender' => $gender,
+                    'class_id' => $classId,
+                    'parent_id' => $parentId,
+                    'admission_date' => now(),
+                    'status' => 'active',
+                ]);
+
+                $created[] = [
+                    'student_id' => $studentId,
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $password,
+                ];
+
+                // Send email to parent if available
+                if ($parentId) {
+                    $parent = \App\Models\ParentModel::with('user')->find($parentId);
+                    if ($parent && $parent->user) {
+                        try {
+                            \Illuminate\Support\Facades\Mail::send('emails.student-created', [
+                                'studentName' => $name,
+                                'studentEmail' => $email,
+                                'studentId' => $studentId,
+                                'password' => $password,
+                                'parentName' => $parent->user->name,
+                                'className' => $className ?? 'Not assigned',
+                            ], function ($message) use ($parent) {
+                                $message->to($parent->user->email, $parent->user->name)
+                                    ->subject('New Student Account Created');
+                            });
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send email to parent: ' . $e->getMessage());
+                        }
+                    }
+                }
+
+            } catch (\Exception $e) {
+                $errors[] = "Row {$row}: " . $e->getMessage();
+            }
+        }
+
+        fclose($handle);
+
+        // Log the action
+        AuditLog::logAction('students.bulk_upload', null, null, [
+            'created_count' => count($created),
+            'error_count' => count($errors),
+        ]);
+
+        return response()->json([
+            'message' => 'Bulk upload completed',
+            'created' => $created,
+            'errors' => $errors,
+            'summary' => [
+                'total_processed' => count($created) + count($errors),
+                'successful' => count($created),
+                'failed' => count($errors),
+            ],
+        ]);
+    }
+
+    public function downloadTemplate()
+    {
+        $filename = 'student_upload_template.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+
+            // Add CSV headers
+            fputcsv($file, [
+                'Name (Required)',
+                'Email (Optional)',
+                'Phone (Optional)',
+                'Date of Birth (YYYY-MM-DD)',
+                'Gender (male/female/other)',
+                'Class Name (Optional)',
+                'Parent Email (Optional)',
+            ]);
+
+            // Add sample row
+            fputcsv($file, [
+                'John Doe',
+                'john.doe@example.com',
+                '+1234567890',
+                '2010-01-15',
+                'male',
+                'Grade 1A',
+                'parent@example.com',
+            ]);
 
             fclose($file);
         };

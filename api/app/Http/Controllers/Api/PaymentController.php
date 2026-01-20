@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
@@ -44,12 +47,16 @@ class PaymentController extends Controller
 
         $payment = Payment::create($validated);
 
+        // Log the action
+        AuditLog::logAction('payment.create', $payment, null, $payment->toArray());
+
         return response()->json($payment->load(['student.user']), 201);
     }
 
     public function update(Request $request, $id)
     {
         $payment = Payment::findOrFail($id);
+        $oldValues = $payment->toArray();
 
         $validated = $request->validate([
             'status' => 'sometimes|in:pending,completed,failed,refunded',
@@ -58,11 +65,45 @@ class PaymentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        if ($validated['status'] === 'completed' && !isset($validated['paid_date'])) {
+        if (isset($validated['status']) && $validated['status'] === 'completed' && !isset($validated['paid_date'])) {
             $validated['paid_date'] = now();
         }
 
         $payment->update($validated);
+
+        // Send notification if payment is completed
+        if (isset($validated['status']) && $validated['status'] === 'completed') {
+            $student = $payment->student()->with('user', 'parent.user')->first();
+            
+            if ($student && $student->user) {
+                try {
+                    // Send email to student
+                    Mail::send('emails.message', [
+                        'subject' => 'Payment Confirmation',
+                        'content' => "Your payment of {$payment->amount} for {$payment->payment_type} has been confirmed. Transaction ID: {$payment->transaction_id}",
+                    ], function ($message) use ($student) {
+                        $message->to($student->user->email, $student->user->name)
+                            ->subject('Payment Confirmation');
+                    });
+
+                    // Send email to parent if available
+                    if ($student->parent && $student->parent->user) {
+                        Mail::send('emails.message', [
+                            'subject' => 'Payment Confirmation',
+                            'content' => "Payment of {$payment->amount} for {$student->user->name} ({$payment->payment_type}) has been confirmed. Transaction ID: {$payment->transaction_id}",
+                        ], function ($message) use ($student) {
+                            $message->to($student->parent->user->email, $student->parent->user->name)
+                                ->subject('Payment Confirmation');
+                        });
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to send payment notification: ' . $e->getMessage());
+                }
+            }
+        }
+
+        // Log the action
+        AuditLog::logAction('payment.update', $payment, $oldValues, $payment->fresh()->toArray());
 
         return response()->json($payment->load(['student.user']));
     }
