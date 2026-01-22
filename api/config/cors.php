@@ -27,6 +27,8 @@ return [
         'https://coreskool.xyz',
     ],
 
+    // Allows Vercel preview deployments. For production, you can remove this pattern
+    // and only allow specific domains above for better security.
     'allowed_origins_patterns' => [
         '/^https:\/\/.*\.vercel\.app$/',
     ],

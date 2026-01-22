@@ -108,6 +108,8 @@ Visit https://anodaapi.coreskool.xyz/api to verify the API is working.
 2. Set `APP_DEBUG=false` in production (already configured)
 3. Keep Laravel and dependencies updated
 4. Monitor error logs in `storage/logs/laravel.log`
+5. **CSRF Protection**: Laravel Sanctum provides built-in CSRF protection for authenticated requests. The session is configured with `SameSite=none` to support cross-domain authentication with Vercel frontends.
+6. **CORS Security**: The Vercel wildcard pattern allows preview deployments. Once in production, you can restrict this to only specific domains by editing `config/cors.php`.
 
 ## CORS Configuration
 The API is configured to allow requests from:
