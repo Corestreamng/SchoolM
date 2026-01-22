@@ -107,7 +107,7 @@ Your Hosting (anodaapi.coreskool.xyz)
 - The `.env` file will NOT be in the repository - you need to create it from `.env.example`
 
 ### Database
-- Create the database `coreskool_anoda` if it doesn't exist
+- Create the database with the name you configured in `.env`
 - The migrations will create all necessary tables
 
 ### Vercel Setup
@@ -130,7 +130,7 @@ If you need more details:
 
 **"Database connection failed"**
 - Verify credentials in `.env` file match your database
-- Ensure database exists: `coreskool_anoda`
+- Ensure database exists with the name specified in your `.env` file
 
 **"CORS Error" in browser**
 - Verify API is accessible at `https://anodaapi.coreskool.xyz/api`
