@@ -1,0 +1,6 @@
+# Sensitive credentials - DO NOT commit
+CREDENTIALS.txt
+
+# OS files
+.DS_Store
+Thumbs.db

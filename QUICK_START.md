@@ -5,10 +5,8 @@ This guide will help you deploy your CoreSkool application with the configuratio
 ## 📋 What's Been Configured
 
 ✅ **API Configuration**
-- Database: `coreskool_anoda`
-- Username: `coreskool_anodadev`
-- Password: `@nod@_6565!$.`
 - API URL: `https://anodaapi.coreskool.xyz`
+- Database credentials will be configured during deployment
 
 ✅ **CORS Settings**
 - Configured to allow Vercel deployments
@@ -29,12 +27,13 @@ This guide will help you deploy your CoreSkool application with the configuratio
    cd api
    cp .env.example .env
    ```
-4. **Update the database credentials** in `.env`:
+4. **Update the database credentials** in `.env` with your actual hosting database details:
    ```env
-   DB_DATABASE=coreskool_anoda
-   DB_USERNAME=coreskool_anodadev
-   DB_PASSWORD=@nod@_6565!$.
+   DB_DATABASE=your_database_name
+   DB_USERNAME=your_database_username
+   DB_PASSWORD=your_database_password
    ```
+   (Your hosting provider will provide these credentials)
 5. **Install dependencies and setup**:
    ```bash
    composer install --optimize-autoloader --no-dev

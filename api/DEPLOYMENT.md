@@ -13,11 +13,11 @@
 Upload the entire `api` folder to your hosting server. The document root should point to the `api/public` folder.
 
 ### 2. Database Configuration
-The `.env` file is already configured with your database credentials:
+Create your database and update the `.env` file with your database credentials:
 ```
-DB_DATABASE=coreskool_anoda
-DB_USERNAME=coreskool_anodadev
-DB_PASSWORD=@nod@_6565!$.
+DB_DATABASE=your_database_name
+DB_USERNAME=your_database_username
+DB_PASSWORD=your_database_password
 ```
 
 ### 3. Install Dependencies
